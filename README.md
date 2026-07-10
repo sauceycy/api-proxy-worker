@@ -14,7 +14,7 @@ test.282628.xyz/api/*
 
 ```toml
 [vars]
-BACKEND_ORIGIN = "https://你的统一后端入口域名"
+BACKEND_ORIGIN = "http://你的NLB-DNS地址"
 STRIP_API_PREFIX = "true"
 ```
 
