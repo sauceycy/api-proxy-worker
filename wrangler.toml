@@ -2,10 +2,6 @@ name = "api-proxy-worker"
 main = "src/index.js"
 compatibility_date = "2026-07-10"
 
-routes = [
-  { pattern = "test.282628.xyz/api/*", zone_name = "282628.xyz" }
-]
-
 [vars]
 # 改成你当前统一 CNAME/NLB/APISIX 的后端入口域名。
 BACKEND_ORIGIN = "https://backend.example.com"
