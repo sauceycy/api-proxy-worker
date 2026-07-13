@@ -20,7 +20,7 @@ export default {
     targetUrl.search = incomingUrl.search
 
     const headers = new Headers(request.headers)
-    headers.set('Host', incomingUrl.hostname)
+    headers.set('Host', targetUrl.hostname)
     headers.set('X-Forwarded-Host', incomingUrl.hostname)
     headers.set('X-Original-Host', incomingUrl.hostname)
     headers.set('X-Forwarded-Proto', incomingUrl.protocol.replace(':', ''))
@@ -34,6 +34,7 @@ export default {
 
     const responseHeaders = new Headers(response.headers)
     responseHeaders.set('X-Proxy-Original-Host', incomingUrl.hostname)
+    responseHeaders.set('X-Proxy-Target-Host', targetUrl.hostname)
     responseHeaders.set('X-Proxy-Target-Path', targetUrl.pathname)
 
     return new Response(response.body, {
