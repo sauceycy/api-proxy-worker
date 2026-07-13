@@ -20,16 +20,26 @@ export default {
     targetUrl.search = incomingUrl.search
 
     const headers = new Headers(request.headers)
-    headers.set('Host', targetUrl.hostname)
+    headers.set('Host', incomingUrl.hostname)
     headers.set('X-Forwarded-Host', incomingUrl.hostname)
     headers.set('X-Original-Host', incomingUrl.hostname)
     headers.set('X-Forwarded-Proto', incomingUrl.protocol.replace(':', ''))
 
-    return fetch(new Request(targetUrl, {
+    const response = await fetch(new Request(targetUrl, {
       method: request.method,
       headers,
       body: request.body,
       redirect: 'manual'
     }))
+
+    const responseHeaders = new Headers(response.headers)
+    responseHeaders.set('X-Proxy-Original-Host', incomingUrl.hostname)
+    responseHeaders.set('X-Proxy-Target-Path', targetUrl.pathname)
+
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: responseHeaders
+    })
   }
 }
