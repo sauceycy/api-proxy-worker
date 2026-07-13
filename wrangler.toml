@@ -2,10 +2,25 @@ name = "test-api-proxy-worker"
 main = "src/index.js"
 compatibility_date = "2026-07-10"
 
-[vars]
-# 改成你当前只开放 HTTP 的阿里云 NLB DNS 地址。
-BACKEND_ORIGIN = "http://nlb-example.aliyuncs.com"
+[observability]
+enabled = true
+head_sampling_rate = 1
 
-# true:  /api/user/list -> https://backend.example.com/user/list
-# false: /api/user/list -> https://backend.example.com/api/user/list
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+persist = true
+invocation_logs = true
+
+[observability.traces]
+enabled = false
+persist = true
+head_sampling_rate = 1
+
+[vars]
+# 测试环境只开放 HTTP 的阿里云 NLB DNS 地址。
+BACKEND_ORIGIN = "http://nlb-kklureg8iz7kfgzxx8.ap-southeast-1.nlb.aliyuncsslbintl.com"
+
+# true:  /api/user/list -> http://NLB/user/list
+# false: /api/user/list -> http://NLB/api/user/list
 STRIP_API_PREFIX = "true"
