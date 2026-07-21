@@ -3,9 +3,9 @@ main = "src/index.js"
 compatibility_date = "2026-07-10"
 
 [vars]
-# 改成你当前只开放 HTTP 的阿里云 NLB DNS 地址。
-BACKEND_ORIGIN = "http://nlb-example.aliyuncs.com"
+# 生产环境只开放 HTTP 的阿里云 NLB DNS 地址。
+BACKEND_ORIGIN = "http://nlb-0kv238b4frmthttcxl.ap-southeast-1.nlb.aliyuncsslbintl.com"
 
-# true:  /api/user/list -> https://backend.example.com/user/list
-# false: /api/user/list -> https://backend.example.com/api/user/list
+# true:  /api/user/list -> http://NLB/user/list
+# false: /api/user/list -> http://NLB/api/user/list
 STRIP_API_PREFIX = "true"
