@@ -2,6 +2,9 @@ name = "api-proxy-worker"
 main = "src/index.js"
 compatibility_date = "2026-07-10"
 
+[observability]
+enabled = false
+
 [vars]
 # 生产环境只开放 HTTP 的阿里云 NLB DNS 地址。
 BACKEND_ORIGIN = "http://nlb-0kv238b4frmthttcxl.ap-southeast-1.nlb.aliyuncsslbintl.com"
