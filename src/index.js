@@ -26,8 +26,53 @@ function setHeaderIfPresent(headers, headerName, value) {
   }
 }
 
+function setCloudflareHeaders(headers, cfData) {
+  if (cfData.ip) {
+    headers.set('X-Real-IP', cfData.ip)
+    headers.set('X-Forwarded-For', cfData.ip)
+  }
+
+  for (const [headerName, value] of Object.entries({
+    'X-CF-IPCountry': cfData.ipCountry,
+    'X-CF-Country': cfData.country,
+    'X-CF-Region': cfData.region,
+    'X-CF-Region-Code': cfData.regionCode,
+    'X-CF-City': cfData.city,
+    'X-CF-Postal-Code': cfData.postalCode,
+    'X-CF-Timezone': cfData.timezone,
+    'X-CF-Latitude': cfData.latitude,
+    'X-CF-Longitude': cfData.longitude,
+    'X-CF-Continent': cfData.continent,
+    'X-CF-Colo': cfData.colo,
+    'X-CF-ASN': cfData.asn,
+    'X-CF-AS-Organization': cfData.asOrganization
+  })) {
+    setHeaderIfPresent(headers, headerName, value)
+  }
+}
+
+async function logUserByCloudflare(targetUrl, incomingPathname, cfData) {
+  if (!incomingPathname.includes('/app/user/info')) {
+    return
+  }
+
+  const logUrl = new URL(targetUrl)
+  logUrl.pathname = '/app/userLogByCF'
+  logUrl.search = ''
+
+  const response = await fetch(logUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ cf: cfData })
+  })
+
+  console.log('userLogByCFIP', await response.text())
+}
+
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const incomingUrl = new URL(request.url)
 
     if (!incomingUrl.pathname.startsWith('/api/')) {
@@ -54,29 +99,8 @@ export default {
     headers.set('X-Forwarded-Proto', incomingUrl.protocol.replace(':', ''))
 
     const cfData = getCloudflareData(request)
-
-    if (cfData.ip) {
-      headers.set('X-Real-IP', cfData.ip)
-      headers.set('X-Forwarded-For', cfData.ip)
-    }
-
-    for (const [headerName, value] of Object.entries({
-      'X-CF-IPCountry': cfData.ipCountry,
-      'X-CF-Country': cfData.country,
-      'X-CF-Region': cfData.region,
-      'X-CF-Region-Code': cfData.regionCode,
-      'X-CF-City': cfData.city,
-      'X-CF-Postal-Code': cfData.postalCode,
-      'X-CF-Timezone': cfData.timezone,
-      'X-CF-Latitude': cfData.latitude,
-      'X-CF-Longitude': cfData.longitude,
-      'X-CF-Continent': cfData.continent,
-      'X-CF-Colo': cfData.colo,
-      'X-CF-ASN': cfData.asn,
-      'X-CF-AS-Organization': cfData.asOrganization
-    })) {
-      setHeaderIfPresent(headers, headerName, value)
-    }
+    setCloudflareHeaders(headers, cfData)
+    ctx.waitUntil(logUserByCloudflare(targetUrl, incomingUrl.pathname, cfData))
 
     let body = request.body
     const contentType = request.headers.get('Content-Type') || ''
