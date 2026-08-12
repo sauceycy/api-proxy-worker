@@ -1,3 +1,31 @@
+function getCloudflareData(request) {
+  const cf = request.cf || {}
+  const clientIp = request.headers.get('CF-Connecting-IP') || ''
+
+  return {
+    ip: clientIp,
+    ipCountry: request.headers.get('CF-IPCountry') || undefined,
+    country: cf.country,
+    region: cf.region,
+    regionCode: cf.regionCode,
+    city: cf.city,
+    postalCode: cf.postalCode,
+    timezone: cf.timezone,
+    latitude: cf.latitude,
+    longitude: cf.longitude,
+    continent: cf.continent,
+    colo: cf.colo,
+    asn: cf.asn,
+    asOrganization: cf.asOrganization
+  }
+}
+
+function setHeaderIfPresent(headers, headerName, value) {
+  if (value !== undefined && value !== null && value !== '') {
+    headers.set(headerName, String(value))
+  }
+}
+
 export default {
   async fetch(request, env) {
     const incomingUrl = new URL(request.url)
@@ -25,38 +53,53 @@ export default {
     headers.set('X-Original-Host', incomingUrl.hostname)
     headers.set('X-Forwarded-Proto', incomingUrl.protocol.replace(':', ''))
 
-    const cf = request.cf || {}
-    const clientIp = request.headers.get('CF-Connecting-IP') || ''
+    const cfData = getCloudflareData(request)
 
-    if (clientIp) {
-      headers.set('X-Real-IP', clientIp)
-      headers.set('X-Forwarded-For', clientIp)
+    if (cfData.ip) {
+      headers.set('X-Real-IP', cfData.ip)
+      headers.set('X-Forwarded-For', cfData.ip)
     }
 
     for (const [headerName, value] of Object.entries({
-      'X-CF-IPCountry': request.headers.get('CF-IPCountry'),
-      'X-CF-Country': cf.country,
-      'X-CF-Region': cf.region,
-      'X-CF-Region-Code': cf.regionCode,
-      'X-CF-City': cf.city,
-      'X-CF-Postal-Code': cf.postalCode,
-      'X-CF-Timezone': cf.timezone,
-      'X-CF-Latitude': cf.latitude,
-      'X-CF-Longitude': cf.longitude,
-      'X-CF-Continent': cf.continent,
-      'X-CF-Colo': cf.colo,
-      'X-CF-ASN': cf.asn,
-      'X-CF-AS-Organization': cf.asOrganization
+      'X-CF-IPCountry': cfData.ipCountry,
+      'X-CF-Country': cfData.country,
+      'X-CF-Region': cfData.region,
+      'X-CF-Region-Code': cfData.regionCode,
+      'X-CF-City': cfData.city,
+      'X-CF-Postal-Code': cfData.postalCode,
+      'X-CF-Timezone': cfData.timezone,
+      'X-CF-Latitude': cfData.latitude,
+      'X-CF-Longitude': cfData.longitude,
+      'X-CF-Continent': cfData.continent,
+      'X-CF-Colo': cfData.colo,
+      'X-CF-ASN': cfData.asn,
+      'X-CF-AS-Organization': cfData.asOrganization
     })) {
-      if (value !== undefined && value !== null && value !== '') {
-        headers.set(headerName, String(value))
+      setHeaderIfPresent(headers, headerName, value)
+    }
+
+    let body = request.body
+    const contentType = request.headers.get('Content-Type') || ''
+    const canHaveBody = !['GET', 'HEAD'].includes(request.method)
+    const isJsonRequest = contentType.toLowerCase().includes('application/json')
+
+    if (canHaveBody && isJsonRequest) {
+      const originalBody = await request.clone().json().catch(() => undefined)
+
+      if (originalBody && typeof originalBody === 'object' && !Array.isArray(originalBody)) {
+        headers.delete('Content-Length')
+        headers.set('Content-Type', 'application/json')
+        body = JSON.stringify({
+          ...originalBody,
+          cf: cfData
+        })
       }
     }
 
     const response = await fetch(new Request(targetUrl, {
       method: request.method,
       headers,
-      body: request.body,
+      body,
       redirect: 'manual'
     }))
 
