@@ -25,6 +25,34 @@ export default {
     headers.set('X-Original-Host', incomingUrl.hostname)
     headers.set('X-Forwarded-Proto', incomingUrl.protocol.replace(':', ''))
 
+    const cf = request.cf || {}
+    const clientIp = request.headers.get('CF-Connecting-IP') || ''
+
+    if (clientIp) {
+      headers.set('X-Real-IP', clientIp)
+      headers.set('X-Forwarded-For', clientIp)
+    }
+
+    for (const [headerName, value] of Object.entries({
+      'X-CF-IPCountry': request.headers.get('CF-IPCountry'),
+      'X-CF-Country': cf.country,
+      'X-CF-Region': cf.region,
+      'X-CF-Region-Code': cf.regionCode,
+      'X-CF-City': cf.city,
+      'X-CF-Postal-Code': cf.postalCode,
+      'X-CF-Timezone': cf.timezone,
+      'X-CF-Latitude': cf.latitude,
+      'X-CF-Longitude': cf.longitude,
+      'X-CF-Continent': cf.continent,
+      'X-CF-Colo': cf.colo,
+      'X-CF-ASN': cf.asn,
+      'X-CF-AS-Organization': cf.asOrganization
+    })) {
+      if (value !== undefined && value !== null && value !== '') {
+        headers.set(headerName, String(value))
+      }
+    }
+
     const response = await fetch(new Request(targetUrl, {
       method: request.method,
       headers,
