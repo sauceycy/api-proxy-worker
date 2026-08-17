@@ -35,17 +35,14 @@ function setCloudflareHeaders(headers, cfData) {
   for (const [headerName, value] of Object.entries({
     'X-CF-IPCountry': cfData.ipCountry,
     'X-CF-Country': cfData.country,
-    'X-CF-Region': cfData.region,
     'X-CF-Region-Code': cfData.regionCode,
-    'X-CF-City': cfData.city,
     'X-CF-Postal-Code': cfData.postalCode,
     'X-CF-Timezone': cfData.timezone,
     'X-CF-Latitude': cfData.latitude,
     'X-CF-Longitude': cfData.longitude,
     'X-CF-Continent': cfData.continent,
     'X-CF-Colo': cfData.colo,
-    'X-CF-ASN': cfData.asn,
-    'X-CF-AS-Organization': cfData.asOrganization
+    'X-CF-ASN': cfData.asn
   })) {
     setHeaderIfPresent(headers, headerName, value)
   }
