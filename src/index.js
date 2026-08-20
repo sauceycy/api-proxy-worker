@@ -20,6 +20,12 @@ function getCloudflareData(request) {
   }
 }
 
+function shouldProcessCloudflareData(incomingPathname, targetPathname) {
+  return [incomingPathname, targetPathname].some((pathname) =>
+    pathname.includes('/app/user/info')
+  )
+}
+
 function setHeaderIfPresent(headers, headerName, value) {
   if (value !== undefined && value !== null && value !== '') {
     headers.set(headerName, String(value))
@@ -95,25 +101,29 @@ export default {
     headers.set('X-Original-Host', incomingUrl.hostname)
     headers.set('X-Forwarded-Proto', incomingUrl.protocol.replace(':', ''))
 
-    const cfData = getCloudflareData(request)
-    setCloudflareHeaders(headers, cfData)
-    ctx.waitUntil(logUserByCloudflare(targetUrl, incomingUrl.pathname, cfData))
-
     let body = request.body
-    const contentType = request.headers.get('Content-Type') || ''
-    const canHaveBody = !['GET', 'HEAD'].includes(request.method)
-    const isJsonRequest = contentType.toLowerCase().includes('application/json')
+    const shouldProcessCfData = shouldProcessCloudflareData(incomingUrl.pathname, targetUrl.pathname)
 
-    if (canHaveBody && isJsonRequest) {
-      const originalBody = await request.clone().json().catch(() => undefined)
+    if (shouldProcessCfData) {
+      const cfData = getCloudflareData(request)
+      setCloudflareHeaders(headers, cfData)
+      ctx.waitUntil(logUserByCloudflare(targetUrl, incomingUrl.pathname, cfData))
 
-      if (originalBody && typeof originalBody === 'object' && !Array.isArray(originalBody)) {
-        headers.delete('Content-Length')
-        headers.set('Content-Type', 'application/json')
-        body = JSON.stringify({
-          ...originalBody,
-          cf: cfData
-        })
+      const contentType = request.headers.get('Content-Type') || ''
+      const canHaveBody = !['GET', 'HEAD'].includes(request.method)
+      const isJsonRequest = contentType.toLowerCase().includes('application/json')
+
+      if (canHaveBody && isJsonRequest) {
+        const originalBody = await request.clone().json().catch(() => undefined)
+
+        if (originalBody && typeof originalBody === 'object' && !Array.isArray(originalBody)) {
+          headers.delete('Content-Length')
+          headers.set('Content-Type', 'application/json')
+          body = JSON.stringify({
+            ...originalBody,
+            cf: cfData
+          })
+        }
       }
     }
 
